@@ -1,0 +1,104 @@
+# ============================================================
+#  Hackathon Scout configuration
+#  Everything here is safe to edit — no code changes needed.
+# ============================================================
+
+# An event is kept if its title/themes/context contains ANY of these
+# (case-insensitive substring match; German included since you're DE-based).
+keywords:
+  - health          # healthcare, healthtech, digital health, mental health...
+  - gesundheit
+  - medical
+  - medicine
+  - medizin
+  - medtech
+  - med-tech
+  - biomed
+  - biotech
+  - biolog          # biology, biological
+  - bioinformatic
+  - biohack
+  - synbio
+  - life science
+  - lifescience
+  - pharma          # pharma, pharmaceutical, pharmacy
+  - arznei
+  - drug discovery
+  - genom           # genome, genomics
+  - omics
+  - clinical
+  - klinik
+  - hospital
+  - kranken         # Krankenhaus, Krankenversicherung
+  - pflege
+  - patient
+  - diagnos         # diagnosis, diagnostics
+  - oncolog
+  - onkolog
+  - radiolog
+  - cardio
+  - kardio
+  - neuro
+  - surgery
+  - surgical
+  - dental
+  - vaccine
+  - epidemi
+  - public health
+  - telemedi
+  - ehealth
+  - e-health
+  - longevity
+  - fhir            # health-IT interoperability standard — strong signal
+  - dicom
+
+# Anything containing these is dropped even if a keyword matched.
+exclude_keywords: []
+#  e.g. [blockchain, web3] if you never want those
+
+# Words that mark something as an *event* (used for the web sweep and
+# any listing page with must_contain: EVENT_WORDS-style filtering).
+event_words: [hackathon, hackaton, datathon, makeathon, hacks, hacking, "hack:"]
+
+# ------------------------------------------------------------
+# Source 1: Devpost (JSON API) — one query per term below
+# ------------------------------------------------------------
+devpost_search_terms: [health, medical, bio, pharma, clinical, genomics]
+
+# ------------------------------------------------------------
+# Source 3: Aggregator listing pages (generic link harvester).
+#   link_contains  -> only keep <a> tags whose href contains this
+#   must_contain   -> anchor text must contain one of these words
+#   trusted: true  -> skip the keyword filter (page is already topic-filtered)
+# ------------------------------------------------------------
+listing_pages:
+  - name: "AllHackathons (health theme)"
+    url: "https://allhackathons.com/themes/health/"
+    link_contains: "/hackathon/"
+    trusted: true
+
+  - name: "digital-health-events.de (Germany)"
+    url: "https://digital-health-events.de/"
+    link_contains: "utm_source=digital-health-events.de"
+    must_contain: [hackathon, datathon, makeathon, "hack:", hacking]
+
+  # Add more here — e.g. a university page, an EIT Health events page,
+  # hackathon-base.org, your favourite pharma innovation-lab page...
+
+# ------------------------------------------------------------
+# Source 4: Web sweep via DuckDuckGo ({year} is filled automatically)
+# ------------------------------------------------------------
+web_queries:
+  - "healthcare hackathon {year}"
+  - "digital health hackathon {year} Europe"
+  - "biotech hackathon {year}"
+  - "pharma hackathon {year}"
+  - "bioinformatics hackathon {year}"
+  - "medical AI hackathon {year} Germany"
+
+# ------------------------------------------------------------
+# Optional: let Claude drop false positives before notifying.
+# Only active if the ANTHROPIC_API_KEY env var / secret is set.
+# ------------------------------------------------------------
+llm_filter: true
+llm_model: claude-haiku-4-5
