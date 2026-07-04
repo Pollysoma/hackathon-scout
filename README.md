@@ -1,4 +1,4 @@
-# 🩺 Hackathon Scout
+# Hackathon Scout
 
 A tiny agent that watches the web for **healthcare / biotech / pharma hackathons** and pings you the moment something new appears — so you never again find out about a hackathon four days before it starts, after registration closed.
 
@@ -8,11 +8,15 @@ It runs for **free on GitHub Actions** (no server needed), remembers what it alr
 1
 11
 
+
+
+
+
 ```
-Devpost API ─┐
+Devpost API  ─┐
 MLH calendar ─┤                                       ┌─ Telegram
 Aggregators  ─┼→ dedupe → keyword filter → new only? ─┼─ E-mail digest
-Web sweep    ─┘         (optional Claude re-check)    └─ Action logs
+Web sweep    ─┘                                       └─ Action logs
                               ↓
                         seen.json (memory)
 ```
@@ -27,13 +31,13 @@ Sources out of the box:
 
 Every source is best-effort: if a site changes its markup or blocks a request, the run logs it and continues with the rest.
 
-## Quick start (local test, ~2 minutes)
+## Quick start 
 
 ```bash
 pip install -r requirements.txt
 SCOUT_DRY=1 python agent.py      # dry run: prints the digest, saves nothing
 python agent.py                  # real run: prints digest (no notifier configured yet), saves seen.json
-python agent.py                  # → "Nothing new today. ✅"
+python agent.py                  # → "Nothing new today."
 ```
 
 ## Deploy free on GitHub Actions (~10 minutes)
