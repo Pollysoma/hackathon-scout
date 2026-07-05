@@ -6,6 +6,66 @@
 # An event is kept if its title/themes/context contains ANY of these
 # (case-insensitive substring match; German included since you're DE-based).
 keywords:
+  # --- pharma & drug discovery ---
+  - pharma              # pharma, pharmaceutical
+  - drug discovery
+  - drug design
+  - therapeutic
+  - medicinal chem      # medicinal chemistry
+  - small molecule
+  - lead optimization
+  - virtual screening
+  - admet
+  - qsar
+  - cheminformatic
+  - chemoinformatic
+  - computational chem  # computational chemistry
+
+  # --- protein & structural biology ---
+  - protein             # protein design/engineering/folding/structure
+  - alphafold
+  - de novo             # de novo protein / drug
+  - binder design
+  - enzyme
+  - antibody
+  - structural biolog
+  - structure prediction
+
+  # --- molecule / molecular design ---
+  - molecul             # molecule, molecular design/dynamics/generation
+  - retrosynthesis
+  - generative chem     # generative chemistry
+  - docking             # molecular docking
+
+  # --- AI in biology / techbio ---
+  - techbio
+  - ai drug
+  - ai for bio
+  - ai in bio
+  - generative biolog
+
+  # --- computational biology & genomics ---
+  - computational biolog
+  - comp bio
+  - bioinformatic
+  - systems biolog
+  - omics
+  - genom               # genome, genomics
+  - proteom             # proteome, proteomics
+  - transcriptom
+  - metabolom
+  - single cell
+  - single-cell
+  - in silico
+
+  # --- broader bio / life-science umbrella ---
+  - synthetic biolog
+  - synbio
+  - bioengineering
+  - biotech             # biotech, biotechnology
+  - life science
+  - lifescience
+
   - health          # healthcare, healthtech, digital health, mental health...
   - gesundheit
   - medical
@@ -21,11 +81,6 @@ keywords:
   - synbio
   - life science
   - lifescience
-  - pharma          # pharma, pharmaceutical, pharmacy
-  - arznei
-  - drug discovery
-  - genom           # genome, genomics
-  - omics
   - clinical
   - klinik
   - hospital
@@ -102,3 +157,17 @@ web_queries:
 # ------------------------------------------------------------
 llm_filter: true
 llm_model: claude-haiku-4-5
+
+# ------------------------------------------------------------
+# Reminders — days before a date on which to ping you in chat.
+# Use [] to switch a reminder type off.
+# ------------------------------------------------------------
+remind_days_before_deadline: [3]   # "registration closes in N days"
+remind_days_before_start: [7]      # "hackathon starts in N days"
+
+# ------------------------------------------------------------
+# Catalog housekeeping: drop events from events.json once they
+# ended more than N days ago (undated entries: last sighting).
+# ------------------------------------------------------------
+prune_days: 120
+
