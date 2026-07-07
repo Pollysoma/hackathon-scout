@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """
-Command poller — runs every 5 minutes on GitHub Actions and reacts to chat
-commands on Telegram and Discord:
+Command poller — runs every 5 minutes on GitHub Actions and reacts to
+TELEGRAM commands only (Discord is push-only: it just receives the daily
+12:00-Munich digest and has no commands):
 
-  /update  (or the old /scan)  -> dispatches the scan workflow; new finds are
-                                  broadcast to every configured channel
-  /all                         -> replies immediately with the full list of
-                                  known upcoming hackathons (from events.json)
+  /search  (aliases: /update, /scan)  -> dispatches the scan workflow with
+                                         channels=telegram, so the results of
+                                         THIS scan go to Telegram only
+  /all                                -> replies immediately with the full list
+                                         of known upcoming hackathons
+                                         (from the committed events.json)
 
-Dedupe:
-  Telegram — updates are confirmed via getUpdates offset, so each message is
-             delivered to this poller exactly once.
-  Discord  — the bot marks handled messages with a ✅ reaction and skips any
-             message it already reacted to.
-
-Commands older than MAX_AGE are ignored (but still marked handled) so a pile
-of stale messages can't trigger a scan storm after downtime.
+Dedupe: Telegram updates are confirmed via the getUpdates offset, so each
+message reaches this poller exactly once. Commands older than MAX_AGE are
+ignored (but still confirmed) so a pile of stale messages can't trigger a
+scan storm after downtime.
 """
 
 from __future__ import annotations
@@ -24,11 +23,12 @@ import datetime as dt
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 import requests
 
-from parser import event_status, fmt_span
+from parser import chunks, event_status, fmt_span
 
 ROOT = Path(__file__).resolve().parent
 CATALOG_FILE = ROOT / "events.json"
@@ -36,7 +36,7 @@ TIMEOUT = 30
 MAX_AGE = dt.timedelta(minutes=30)
 ALL_LIMIT = 60  # cap /all output; the Notion table has everything
 
-UPDATE_CMDS = ("/update", "/scan")  # /scan kept as a legacy alias
+SEARCH_CMDS = ("/search", "/update", "/scan")  # /update + /scan kept as aliases
 ALL_CMDS = ("/all",)
 
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
@@ -51,13 +51,13 @@ def log(msg: str) -> None:
 
 
 def command_of(text: str) -> str | None:
-    """'/update@MyBot now please' -> 'update'; None if not a known command."""
+    """'/search@MyBot now please' -> 'search'; None if not a known command."""
     first = (text or "").strip().split()[:1]
     if not first:
         return None
     word = first[0].lower().split("@")[0]
-    if word in UPDATE_CMDS:
-        return "update"
+    if word in SEARCH_CMDS:
+        return "search"
     if word in ALL_CMDS:
         return "all"
     return None
@@ -77,24 +77,23 @@ def load_records() -> list[dict]:
         return []
 
 
-def all_text(wrap_urls: bool) -> str:
+def all_text() -> str:
     today = dt.date.today()
     recs = [r for r in load_records() if event_status(r, today) in ("Upcoming", "Unknown")]
     if not recs:
-        return ("The catalog is empty so far — send /update to run a scan first "
+        return ("The catalog is empty so far — send /search to run a scan first "
                 "(the list fills up as scans run).")
     recs.sort(key=lambda r: (r.get("start") is None, r.get("start") or "9999", r.get("title", "")))
     shown = recs[:ALL_LIMIT]
-    lines = [f"📋 {len(recs)} known upcoming hackathon(s), soonest first:", ""]
+    lines = [f"{len(recs)} known upcoming hackathon(s), soonest first:", ""]
     for r in shown:
         span = fmt_span(r.get("start"), r.get("end")) or r.get("dates") or "dates tbd"
         place = r.get("location") or r.get("country") or ""
         meta = " · ".join(v for v in (span, place) if v)
         lines.append(f"• {r['title']}")
-        lines.append(f"  {meta}")
-        if r.get("reg_deadline"):
-            lines.append(f"  📝 register by {fmt_span(r['reg_deadline'], None)}")
-        lines.append(f"  <{r['url']}>" if wrap_urls else f"  {r['url']}")
+        if meta:
+            lines.append(f"  {meta}")
+        lines.append(f"  {r['url']}")
         lines.append("")
     if len(recs) > ALL_LIMIT:
         lines.append(f"…and {len(recs) - ALL_LIMIT} more — see the Notion table for the full list.")
@@ -102,7 +101,7 @@ def all_text(wrap_urls: bool) -> str:
 
 
 # --------------------------------------------------------------------------- #
-#  Trigger the scan workflow
+#  Trigger the scan workflow (telegram-only channel routing)
 # --------------------------------------------------------------------------- #
 
 def trigger_scan() -> bool:
@@ -112,37 +111,20 @@ def trigger_scan() -> bool:
     r = requests.post(
         f"https://api.github.com/repos/{REPO}/actions/workflows/scan.yml/dispatches",
         headers={"Authorization": f"Bearer {GH_TOKEN}", "Accept": "application/vnd.github+json"},
-        json={"ref": REF},
+        json={"ref": REF, "inputs": {"channels": "telegram"}},
         timeout=TIMEOUT,
     )
     if r.status_code == 204:
         _scan_dispatched = True
-        log("scan dispatched")
+        log("scan dispatched (channels=telegram)")
         return True
     log(f"dispatch failed: {r.status_code} {r.text[:200]}")
     return False
 
 
-UPDATE_ACK = ("🔍 Update triggered — new finds arrive here in ~2 min. "
+SEARCH_ACK = ("Search triggered — new finds arrive here in ~2 min. "
               "(Only *new* events are posted; use /all for everything known.)")
-UPDATE_FAIL = "⚠️ Couldn't trigger the scan workflow — check the Actions logs."
-
-
-# --------------------------------------------------------------------------- #
-#  Chunking (Telegram 4096 / Discord 2000 char caps)
-# --------------------------------------------------------------------------- #
-
-def chunks(text: str, n: int):
-    buf: list[str] = []
-    size = 0
-    for line in text.splitlines():
-        if size + len(line) > n and buf:
-            yield "\n".join(buf)
-            buf, size = [], 0
-        buf.append(line)
-        size += len(line) + 1
-    if buf:
-        yield "\n".join(buf)
+SEARCH_FAIL = "Couldn't trigger the scan workflow — check the Actions logs."
 
 
 # --------------------------------------------------------------------------- #
@@ -151,9 +133,22 @@ def chunks(text: str, n: int):
 
 def tg_send(token: str, chat: str, text: str) -> None:
     for chunk in chunks(text, 3500):
-        requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
-                      data={"chat_id": chat, "text": chunk, "disable_web_page_preview": True},
-                      timeout=TIMEOUT)
+        for attempt in (1, 2):
+            r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
+                              data={"chat_id": chat, "text": chunk,
+                                    "disable_web_page_preview": True},
+                              timeout=TIMEOUT)
+            if r.ok:
+                break
+            if r.status_code == 429 and attempt == 1:  # rate-limited mid-reply
+                try:                                   # honor retry_after once
+                    wait = int((r.json().get("parameters") or {}).get("retry_after", 3))
+                except Exception:
+                    wait = 3
+                time.sleep(min(wait, 30))
+                continue
+            log(f"tg_send: HTTP {r.status_code} on a chunk — {r.text[:120]}")
+            break
 
 
 def poll_telegram() -> None:
@@ -164,7 +159,8 @@ def poll_telegram() -> None:
         r = requests.get(f"https://api.telegram.org/bot{token}/getUpdates",
                          params={"limit": 100, "allowed_updates": '["message"]'},
                          timeout=TIMEOUT)
-        updates = r.json().get("result", [])
+        r.raise_for_status()  # 401 (revoked token), 409, 429 etc. return JSON
+        updates = r.json().get("result", [])  # too — don't mistake them for "no updates"
     except Exception as e:
         log(f"telegram poll failed: {e}")
         return
@@ -184,10 +180,16 @@ def poll_telegram() -> None:
             log(f"telegram: skipping stale /{cmd}")
             continue
         log(f"telegram: handling /{cmd}")
-        if cmd == "all":
-            tg_send(token, chat, all_text(wrap_urls=False))
-        else:
-            tg_send(token, chat, UPDATE_ACK if trigger_scan() else UPDATE_FAIL)
+        try:  # one failing command must not block offset confirmation below —
+            # otherwise the same batch is refetched every poll and the poller
+            # wedges; worst case a rare transient error costs one command,
+            # which the user simply re-sends.
+            if cmd == "all":
+                tg_send(token, chat, all_text())
+            else:
+                tg_send(token, chat, SEARCH_ACK if trigger_scan() else SEARCH_FAIL)
+        except Exception as e:
+            log(f"telegram: /{cmd} handler failed: {e}")
 
     if max_id is not None:  # confirm everything so it isn't re-delivered next poll
         try:
@@ -197,64 +199,5 @@ def poll_telegram() -> None:
             log(f"telegram offset confirm failed: {e}")
 
 
-# --------------------------------------------------------------------------- #
-#  Discord
-# --------------------------------------------------------------------------- #
-
-_CHECK = "\u2705"  # ✅
-
-
-def dc_headers(token: str) -> dict:
-    return {"Authorization": f"Bot {token}"}
-
-
-def dc_send(token: str, channel: str, text: str) -> None:
-    for chunk in chunks(text, 1900):
-        requests.post(f"https://discord.com/api/v10/channels/{channel}/messages",
-                      headers=dc_headers(token), json={"content": chunk}, timeout=TIMEOUT)
-
-
-def dc_mark_handled(token: str, channel: str, message_id: str) -> None:
-    requests.put(
-        f"https://discord.com/api/v10/channels/{channel}/messages/{message_id}/reactions/{_CHECK}/@me",
-        headers=dc_headers(token), timeout=TIMEOUT)
-
-
-def poll_discord() -> None:
-    token, channel = os.environ.get("DISCORD_BOT_TOKEN"), os.environ.get("DISCORD_CHANNEL_ID")
-    if not (token and channel):
-        return
-    try:
-        r = requests.get(f"https://discord.com/api/v10/channels/{channel}/messages",
-                         headers=dc_headers(token), params={"limit": 30}, timeout=TIMEOUT)
-        r.raise_for_status()
-        messages = r.json()
-    except Exception as e:
-        log(f"discord poll failed: {e}")
-        return
-
-    now = dt.datetime.now(dt.timezone.utc)
-    for msg in reversed(messages):  # oldest first
-        if (msg.get("author") or {}).get("bot"):
-            continue
-        cmd = command_of(msg.get("content", ""))
-        if not cmd:
-            continue
-        if any(rx.get("me") and (rx.get("emoji") or {}).get("name") == _CHECK
-               for rx in msg.get("reactions", [])):
-            continue  # already handled on a previous poll
-        dc_mark_handled(token, channel, msg["id"])
-        sent = dt.datetime.fromisoformat(msg["timestamp"])
-        if now - sent > MAX_AGE:
-            log(f"discord: skipping stale /{cmd}")
-            continue
-        log(f"discord: handling /{cmd}")
-        if cmd == "all":
-            dc_send(token, channel, all_text(wrap_urls=True))
-        else:
-            dc_send(token, channel, UPDATE_ACK if trigger_scan() else UPDATE_FAIL)
-
-
 if __name__ == "__main__":
     poll_telegram()
-    poll_discord()

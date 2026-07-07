@@ -107,6 +107,20 @@ keywords:
   - fhir            # health-IT interoperability standard — strong signal
   - dicom
 
+  # --- disease / therapy vocabulary (esp. Kaggle-style titles) ---
+  - cancer
+  - tumor               # tumor / tumour
+  - tumour
+  - disease
+  - crispr
+  - dna
+  - immuno              # immunology / immunotherapy
+  - biomarker
+  - microscop           # microscopy / microscope
+  - gene therapy
+  - gene editing
+  - cell therapy
+
 # Anything containing these is dropped even if a keyword matched.
 exclude_keywords: []
 #  e.g. [blockchain, web3] if you never want those
@@ -119,6 +133,19 @@ event_words: [hackathon, hackaton, datathon, makeathon, hacks, hacking, "hack:"]
 # Source 1: Devpost (JSON API) — one query per term below
 # ------------------------------------------------------------
 devpost_search_terms: [health, medical, bio, pharma, clinical, genomics]
+
+# ------------------------------------------------------------
+# Source 2b: grand-challenge.org — public REST API, all biomedical
+# imaging challenges. true/false toggle.
+# ------------------------------------------------------------
+grand_challenge: true
+
+# ------------------------------------------------------------
+# Source 2c: Kaggle competitions API — one query per term below.
+# Only active if KAGGLE_USERNAME + KAGGLE_KEY secrets are set
+# (kaggle.com -> Settings -> API -> Create New Token).
+# ------------------------------------------------------------
+kaggle_search_terms: [health, medical, biology, drug, protein, rna]
 
 # ------------------------------------------------------------
 # Source 3: Aggregator listing pages (generic link harvester).
@@ -137,11 +164,18 @@ listing_pages:
     link_contains: "utm_source=digital-health-events.de"
     must_contain: [hackathon, datathon, makeathon, "hack:", hacking]
 
-  # Add more here — e.g. a university page, an EIT Health events page,
-  # hackathon-base.org, your favourite pharma innovation-lab page...
+  # Add more here — a plain HTML page with real <a> links is required.
+  # (hackathon-base.org, lu.ma, Eventbrite, MIT Hacking Medicine, EIT Health
+  #  are JavaScript-rendered / API-less -> covered by web_queries below.)
 
 # ------------------------------------------------------------
-# Source 4: Web sweep via DuckDuckGo ({year} is filled automatically)
+# Source 4: Web sweep via DuckDuckGo ({year} is filled automatically).
+# Entries are a plain string, or a mapping with flags:
+#   q:       the query (site:xyz restricts to one domain)
+#   loose:   don't require an event word (hackathon/datathon/...) in the
+#            result title — for programs that avoid the word "hackathon"
+#   trusted: skip the keyword relevance filter (domain/query is already
+#            on-topic); the Claude filter still prunes non-event pages
 # ------------------------------------------------------------
 web_queries:
   - "healthcare hackathon {year}"
@@ -151,6 +185,22 @@ web_queries:
   - "bioinformatics hackathon {year}"
   - "medical AI hackathon {year} Germany"
 
+  # --- event platforms (JS-rendered / no public search API) ---
+  - "site:eventbrite.com health hackathon {year}"
+  - "site:eventbrite.com biotech OR medical hackathon"
+  - "site:lu.ma health OR biotech hackathon"
+  - {q: "site:hackathon-base.org health OR medical OR bio", loose: true}
+
+  # --- curated organizers (all-health domains -> trusted) ---
+  - {q: "site:hackingmedicine.mit.edu {year}", loose: true, trusted: true}
+  - {q: "site:eithealth.eu hackathon OR bootcamp OR challenge {year}", loose: true, trusted: true}
+
+  # --- corporate innovation programs (no "hackathon" in titles -> loose) ---
+  - {q: "site:g4a.health {year}", loose: true, trusted: true}
+  - {q: "Bayer G4A digital health partnerships {year}", loose: true, trusted: true}
+  - {q: "Novartis BIOME challenge {year}", loose: true, trusted: true}
+  - {q: "Roche healthcare innovation challenge OR hackathon {year}", loose: true, trusted: true}
+
 # ------------------------------------------------------------
 # Optional: let Claude drop false positives before notifying.
 # Only active if the ANTHROPIC_API_KEY env var / secret is set.
@@ -159,15 +209,23 @@ llm_filter: true
 llm_model: claude-haiku-4-5
 
 # ------------------------------------------------------------
-# Reminders — days before a date on which to ping you in chat.
-# Use [] to switch a reminder type off.
+# Filtering: drop events that have already finished. Undated
+# events are always kept (can't prove they're over). Bare domain
+# roots (aggregator homepages) are dropped automatically.
 # ------------------------------------------------------------
-remind_days_before_deadline: [3]   # "registration closes in N days"
-remind_days_before_start: [7]      # "hackathon starts in N days"
+drop_past_events: true
+past_grace_days: 1   # keep events that ended within this many days (timezones/multi-day)
+
+# ------------------------------------------------------------
+# Reminders — days before a date on which to ping you in chat.
+# DISABLED for now (per setup: chat gets new finds only, name + link;
+# deadlines live in the Notion table). Re-enable with e.g. [3] / [7].
+# ------------------------------------------------------------
+remind_days_before_deadline: []
+remind_days_before_start: []
 
 # ------------------------------------------------------------
 # Catalog housekeeping: drop events from events.json once they
 # ended more than N days ago (undated entries: last sighting).
 # ------------------------------------------------------------
 prune_days: 120
-

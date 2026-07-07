@@ -296,3 +296,37 @@ def fmt_span(start_iso: str | None, end_iso: str | None) -> str:
     if s.year == e.year:
         return f"{s.strftime('%b %d')} – {e.strftime('%b %d')}, {s.year}"
     return f"{s.strftime('%b %d, %Y')} – {e.strftime('%b %d, %Y')}"
+
+
+# --------------------------------------------------------------------------- #
+#  Shared text util (used by agent.py and poller.py)
+# --------------------------------------------------------------------------- #
+
+def chunks(text: str, n: int):
+    """Split text into <=n char pieces on line boundaries (chat APIs cap
+    message length; Telegram 4096, Discord 2000). Single lines longer than n
+    are hard-split so one oversized line can never yield an oversized chunk,
+    and empty / whitespace-only chunks are never emitted (chat APIs reject
+    empty message text with HTTP 400). Such chunks can arise when a blank
+    line lands right after a size-triggered buffer flush (buf == [""])."""
+    def _raw():
+        buf: list[str] = []
+        size = 0
+        for line in text.splitlines():
+            while len(line) > n:  # pathological single line — hard split
+                if buf:
+                    yield "\n".join(buf)
+                    buf, size = [], 0
+                yield line[:n]
+                line = line[n:]
+            if size + len(line) > n and buf:
+                yield "\n".join(buf)
+                buf, size = [], 0
+            buf.append(line)
+            size += len(line) + 1
+        if buf:
+            yield "\n".join(buf)
+
+    for chunk in _raw():
+        if chunk.strip():
+            yield chunk

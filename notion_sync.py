@@ -140,6 +140,8 @@ def sync(events: list[dict], today: dt.date | None = None) -> int:
     touched = 0
     for ev in events:
         try:
+            if not ev.get("url"):  # hand-edited / partial record — can't upsert
+                continue
             props = build_props(ev, title_prop, today)
             payload_hash = hashlib.sha1(
                 json.dumps(props, sort_keys=True).encode()).hexdigest()

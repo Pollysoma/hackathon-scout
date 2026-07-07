@@ -2,11 +2,28 @@ name: Hackathon scan
 
 on:
   schedule:
-    - cron: "0 6 * * *" # daily 06:00 UTC = 08:00 Munich (summer)
-  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
+    # 12:00 Munich, DST-proof: fire at 10:00 AND 11:00 UTC; agent.py's
+    # munich_gate() lets only the slot that is 12:xx Europe/Berlin proceed.
+    - cron: "0 10 * * *"
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      channels:
+        description: "Where to send new finds"
+        type: choice
+        options: [all, telegram]
+        default: all
+      reset_seen:
+        description: "Forget already-announced events (this run then re-sends everything it finds)"
+        type: boolean
+        default: false
 
 permissions:
-  contents: write # needed to commit seen.json back to the repo
+  contents: write # needed to commit seen.json / events.json back to the repo
+
+concurrency:
+  group: hackathon-scan
+  cancel-in-progress: false
 
 jobs:
   scan:
@@ -21,26 +38,47 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Reset seen state (on request)
+        if: github.event_name == 'workflow_dispatch' && inputs.reset_seen
+        run: echo "[]" > seen.json
+
       - name: Run scout
         env:
+          CHANNELS: ${{ inputs.channels || 'all' }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: python agent.py
 
-      - name: Persist state (seen.json + latest digest)
+      - name: Persist state (seen.json + events.json + latest digest)
         run: |
           git config user.name "hackathon-scout[bot]"
           git config user.email "actions@users.noreply.github.com"
-          git add seen.json latest_digest.md 2>/dev/null || true
-          git diff --cached --quiet && echo "No new events to persist." && exit 0
-          git commit -m "chore: update seen events ($(date -u +%F))"
-          git pull --rebase origin ${GITHUB_REF_NAME} || true
+          for f in seen.json events.json latest_digest.md; do
+            [ -e "$f" ] && git add "$f" || true  # skip only genuinely absent
+          done                                   # files; real add errors still fail the step
+          git diff --cached --quiet && echo "No state changes to persist." && exit 0
+          git commit -m "chore: update scout state ($(date -u +%F))"
+          # rebase-then-push with retries: survives a concurrent push instead
+          # of silently losing state. A failed rebase (conflict) is aborted so
+          # retries run on a clean tree; if all attempts fail, the final push
+          # fails the job visibly. (Scan runs are already serialized by the
+          # concurrency group, so this is a rare edge case.)
+          for i in 1 2 3; do
+            git push && exit 0
+            # On a divergent remote, keep our just-committed state. NOTE: during
+            # a rebase git swaps the sides, so "-X theirs" = OUR working branch
+            # (verified: -X ours keeps remote, -X theirs keeps local). A genuine
+            # conflict resolves instead of aborting into the same failed state;
+            # anything dropped is re-scraped and re-added on the next run.
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" || git rebase --abort
+            sleep $((i * 5))
+          done
           git push
