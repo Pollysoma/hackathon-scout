@@ -9,8 +9,8 @@ Devpost API ──────────┐
 MLH calendars ────────┤   dedupe → keyword filter → parse dates/
 grand-challenge API ──┤   deadline/country → catalog + Notion     ┌─ Telegram (all runs)
 Kaggle API (opt.) ────┼→  sync → drop already-seen →         ────►┤
-Aggregator pages ─────┤   Claude relevance filter → notify        └─ Discord (daily 12:00
-DuckDuckGo sweeps ────┘              ↓                                Munich digest only)
+Aggregator pages ─────┤   Claude relevance filter → notify        └─ Discord (daily)
+DuckDuckGo sweeps ────┘              ↓                           
                         seen.json  ·  events.json ──────────────────► Notion database
                         (notified)    (full catalog, powers /all)
 ```
@@ -29,7 +29,7 @@ events.json                     full event catalog, committed by the scan run
 latest_digest.md                snapshot of the most recent digest
 .env.example                    template for local runs (secrets live in Actions)
 .github/workflows/
-  scan.yml                      daily scan at 12:00 GMT+2 (DST-proof dual cron)
+  scan.yml                      daily scan
   command-poller.yml            polls Telegram every 5 min for commands
 ```
 
