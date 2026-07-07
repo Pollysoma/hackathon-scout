@@ -11,6 +11,15 @@
    "title": "Aclimakathon",
    "url": "https://allhackathons.com/hackathon/aclimakathon-3"
   },
+  "31fd2755946320d8": {
+   "first_seen": "2026-07-07",
+   "id": "31fd2755946320d8",
+   "last_seen": "2026-07-07",
+   "notion_hash": "87088d78c62b8f51c2b996c260a6802392aac2de",
+   "source": "Web sweep: healthcare hackathon 2026",
+   "title": "Cornell University Health Tech Hackathon",
+   "url": "https://hackathon.cornell.edu/health"
+  },
   "39cf9511c1bb0a41": {
    "first_seen": "2026-07-07",
    "id": "39cf9511c1bb0a41",
@@ -102,12 +111,21 @@
    "title": "HSIL Hackathon 2026 - Building High-Value Health Systems: Leveraging AI ...",
    "url": "https://hsph.harvard.edu/research/health-systems-innovation-lab/work/hsil-hackathon-2026-building-high-value-health-systems-leveraging-ai"
   },
+  "880fc58ee4b98cec": {
+   "first_seen": "2026-07-07",
+   "id": "880fc58ee4b98cec",
+   "last_seen": "2026-07-07",
+   "notion_hash": "6dff2c8e56e4ee8e1f77950e6540f4d25d7470dd",
+   "source": "Web sweep: digital health hackathon 2026 Europe",
+   "title": "Hackathon - European Society of Cardiology",
+   "url": "https://escardio.org/events/congresses/digital-ai-summit/hackathon"
+  },
   "88dfb21c17db4665": {
    "first_seen": "2026-07-07",
    "id": "88dfb21c17db4665",
    "last_seen": "2026-07-07",
-   "notion_hash": "85b2b19210dad98cf902f4dc1322762c20031545",
-   "source": "Web sweep: healthcare hackathon 2026",
+   "notion_hash": "ee0eb6e3e2bfcfccc3b4afc8137737438cef049f",
+   "source": "Web sweep: digital health hackathon 2026 Europe",
    "title": "Healthcare Hackathon 2026 - Digital Health Events",
    "url": "https://digital-health-events.de/events/healthcare-hackathon-2026"
   },
@@ -150,6 +168,15 @@
    "source": "Web sweep: digital health hackathon 2026 Europe",
    "title": "Hacking Health Camp 2026: 50 hours to reinvent ... - IHU Strasbourg",
    "url": "https://ihu-strasbourg.eu/hacking-health-camp-2026-strasbourg?lang=en"
+  },
+  "b432006c24a75dd3": {
+   "first_seen": "2026-07-07",
+   "id": "b432006c24a75dd3",
+   "last_seen": "2026-07-07",
+   "notion_hash": "e7de15ca6dcaa163b87890dcfd3071bc40b97dbd",
+   "source": "Web sweep: digital health hackathon 2026 Europe",
+   "title": "EUTOPIA_HEALTH Hackathon 2026 in Lisbon",
+   "url": "https://eutopia.ubbcluj.ro/en/eutopia_health-hackathon-2026-in-lisbon"
   },
   "ddeb852261e1fe99": {
    "end": "2026-07-12",
@@ -194,5 +221,5 @@
    "url": "https://columbia.edu/content/events/hacking-health-2026-bmes-healthcare-hackathon"
   }
  },
- "generated": "2026-07-07T08:39:08+00:00"
+ "generated": "2026-07-07T12:24:45+00:00"
 }
