@@ -1,6 +1,6 @@
-# 🩺 Hackathon Scout — 2026-07-29
+# 🩺 Hackathon Scout — 2026-07-30
 
 **1 new event(s) found.**
 
-• Health & Biotech Hackathons 2026 | Hackathon Radar
-  https://hackathonradar.com/discover/c/health/2026
+• Digi-Hackathon Mobile Health — Digital health hackathon | Euromed ...
+  https://euromedinnovation.center/en/programs/digi-hackathon
