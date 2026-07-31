@@ -1,6 +1,6 @@
-# 🩺 Hackathon Scout — 2026-07-30
+# 🩺 Hackathon Scout — 2026-07-31
 
 **1 new event(s) found.**
 
-• Digi-Hackathon Mobile Health — Digital health hackathon | Euromed ...
-  https://euromedinnovation.center/en/programs/digi-hackathon
+• Hacking Health Camp 2026: 50 hours to reinvent ... - IHU Strasbourg
+  https://ihu-strasbourg.eu/hacking-health-camp-2026-strasbourg
