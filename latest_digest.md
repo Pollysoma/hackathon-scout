@@ -1,6 +1,9 @@
-# 🩺 Hackathon Scout — 2026-08-03
+# 🩺 Hackathon Scout — 2026-08-05
 
-**1 new event(s) found.**
+**2 new event(s) found.**
 
-• Health x AI Hackathon | Adeline Summer Sprint 2026
-  https://adeline.co.uk/hackathon
+• PDF Harvard Health Systems Innovation Lab Hackathon 2026
+  https://hsph.harvard.edu/wp-content/uploads/2025/12/HSIL-Hackathon_Application-Instructions.pdf
+
+• The Harvard Health Systems Innovation Lab Hackathon is back ... - LinkedIn
+  https://linkedin.com/posts/harvardhsi_the-harvard-health-systems-innovation-lab-activity-7397324035480657921-j0x_
